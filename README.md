@@ -1,7 +1,7 @@
 # PolyLens
 
 <div align="center">
-  <img src="web/dist/logo-full.png" alt="PolyLens Logo" width="400"/>
+  <img src="web/dist/logo-full.png" alt="PolyLens Logo" width="800"/>
   <p>
     将原始链上透明度转化为可操作的交易情报<br/>
     发现 Alpha · 追踪鲸鱼 · 验证交易
@@ -114,7 +114,7 @@ python -m src.main index --latest 1000
 
 ### 第五步：启动后端 API 服务
 ```bash
-python -m src.api.server --db ./data/demo_indexer.db --port 8000
+python -m src.api.server --db ./data/dashboard.db --port 8000
 ```
 服务将在 http://localhost:8000 启动。
 
