@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, Query, HTTPException
 from pydantic import BaseModel
 
 from ..deps import get_db, get_db_path
-from ...dashboard.metrics import MarketMetrics
+from ...core.metrics import MarketMetrics
 
 
 router = APIRouter(prefix="/metrics", tags=["metrics"])

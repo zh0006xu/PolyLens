@@ -36,7 +36,7 @@ def index(from_block: int, to_block: int, db: str, batch_size: int, reset: bool)
     from .core.db.schema import init_db, reset_db
     from .core.db.store import get_sync_state
     from .core.indexer import run_indexer
-    from .dashboard.whale_detector import WhaleDetector
+    from .core.whale_detector import WhaleDetector
 
     # 确保数据目录存在
     Path(db).parent.mkdir(parents=True, exist_ok=True)
@@ -173,7 +173,7 @@ def discover(event_slug: str, active_only: bool, fetch_all: bool, limit: int, db
 @click.option("--port", default=API_PORT, type=int, help="API 服务器端口")
 @click.option("--db", default=DATABASE_PATH, help="数据库文件路径")
 @click.option("--reload", is_flag=True, help="启用热重载 (开发模式)")
-@click.option("--sync-interval", default=30, type=int, help="后台同步间隔 (秒)")
+@click.option("--sync-interval", default=10, type=int, help="后台同步间隔 (秒)")
 @click.option("--no-scheduler", is_flag=True, help="禁用后台同步调度器")
 @click.option(
     "--whale-threshold", default=WHALE_THRESHOLD, type=float, help="鲸鱼交易阈值 (USD)"

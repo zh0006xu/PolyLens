@@ -1,3 +1,4 @@
+
 # PolyLens
 
 <div align="center">
@@ -86,13 +87,19 @@
   <img src="screenshots/leaderboard.png" alt="Leaderboard" width="800" style="border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"/>
 </div>
 
+### 7. 市场深度洞察 (Market Insights)
+宏观与微观并重：情绪大盘 + 热门榜单 + Smart Money + 市场异动监测，助你捕捉市场转折点。
+
+<div align="center">
+  <img src="screenshots/insights.png" alt="Insights" width="800" style="border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"/>
+</div>
 ---
 
 ## 🚀 快速开始 (Quick Start)
 
 ### 第一步：环境准备
 ```bash
-cd <项目存储路径>/submission
+cd <项目根目录>
 ```
 
 ### 第二步：配置环境变量
@@ -108,13 +115,13 @@ pip install -r requirements.txt
 
 ### 第四步：索引数据（首次运行需要）
 ```bash
-# 若不提供选项参数，默认索引最近 200 个区块：
+# 若不提供选项参数，默认索引最近 100 个区块：
 python -m src.main index --latest 1000
 ```
 
 ### 第五步：启动后端 API 服务
 ```bash
-python -m src.api.server --db ./data/dashboard.db --port 8000
+python -m src.main serve --port 8000
 ```
 服务将在 http://localhost:8000 启动。
 

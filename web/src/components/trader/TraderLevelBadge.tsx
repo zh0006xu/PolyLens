@@ -40,9 +40,18 @@ export const TRADER_LEVELS: Record<string, TraderLevelInfo> = {
   },
 };
 
-// Volume-only estimation is not PHASE5-compliant; keep as opt-in fallback only.
+// Estimate level from volume/value (for leaderboard and holders without backend level)
+// Thresholds based on USD value:
+// - Whale: $100,000+
+// - Shark: $25,000+
+// - Dolphin: $5,000+
+// - Fish: below $5,000 (not shown to avoid clutter)
 export function estimateLevelFromVolume(vol: number | null | undefined): TraderLevelInfo | null {
-  return null;
+  if (!vol || vol <= 0) return null;
+  if (vol >= 100000) return TRADER_LEVELS.whale;
+  if (vol >= 25000) return TRADER_LEVELS.shark;
+  if (vol >= 5000) return TRADER_LEVELS.dolphin;
+  return null; // Don't show fish level to avoid clutter
 }
 
 export function getLevelInfo(level: string | null | undefined): TraderLevelInfo {
@@ -58,8 +67,8 @@ interface TraderLevelBadgeProps {
 }
 
 export function TraderLevelBadge({ level, volume, showLabel = true, size = 'md' }: TraderLevelBadgeProps) {
-  void volume;
-  const levelInfo = level ? getLevelInfo(level) : null;
+  // Use level prop if provided, otherwise estimate from volume
+  const levelInfo = level ? getLevelInfo(level) : estimateLevelFromVolume(volume);
 
   if (!levelInfo) return null;
 

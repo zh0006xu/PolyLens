@@ -25,6 +25,12 @@ export function Navbar() {
             >
               Leaderboard
             </Link>
+            <Link
+              to="/insights"
+              className="text-slate-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+            >
+              Insights
+            </Link>
             <a
               href="https://polymarket.com"
               target="_blank"

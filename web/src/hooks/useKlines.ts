@@ -7,6 +7,6 @@ export function useKlines(params: KlineQueryParams) {
     queryKey: ['klines', params],
     queryFn: () => fetchKlines(params),
     enabled: !!params.market_id,
-    refetchInterval: 60000, // Refetch every minute
+    refetchInterval: 10000, // Refetch every 10 seconds
   });
 }

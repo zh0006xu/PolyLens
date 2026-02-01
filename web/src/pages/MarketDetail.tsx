@@ -307,7 +307,7 @@ export function MarketDetail() {
                                   <div>
                                     <div className="flex items-center gap-1.5">
                                       <span className="text-sm text-white font-medium">{displayName}</span>
-                                      <TraderLevelBadge level={holder.whale_level} size="sm" />
+                                      <TraderLevelBadge level={holder.whale_level} volume={(Number(holder.amount) || 0) * price} size="sm" />
                                     </div>
                                     <div className="text-xs text-slate-500">
                                       {truncateAddress(holder.proxyWallet)}
@@ -330,7 +330,7 @@ export function MarketDetail() {
                                   <div>
                                     <div className="flex items-center gap-1.5">
                                       <span className="text-sm text-white font-medium">{displayName}</span>
-                                      <TraderLevelBadge level={holder.whale_level} size="sm" />
+                                      <TraderLevelBadge level={holder.whale_level} volume={(Number(holder.amount) || 0) * price} size="sm" />
                                     </div>
                                     <div className="text-xs text-slate-500">Wallet hidden</div>
                                   </div>

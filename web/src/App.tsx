@@ -2,10 +2,12 @@ import { useState, useCallback } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Layout } from './components/layout';
+import { ScrollToTop } from './components/common';
 import { Home } from './pages/Home';
 import { MarketDetail } from './pages/MarketDetail';
 import { TraderProfile } from './pages/TraderProfile';
 import { TraderLeaderboard } from './pages/TraderLeaderboard';
+import { Insights } from './pages/Insights';
 import { WhaleAlertContainer } from './components/whale';
 import { useWhaleWebSocket } from './hooks/useWebSocket';
 import type { WhaleTrade } from './types';
@@ -41,12 +43,14 @@ function AppContent() {
   return (
     <>
       <BrowserRouter>
+        <ScrollToTop />
         <Routes>
           <Route path="/" element={<Layout />}>
             <Route index element={<Home />} />
             <Route path="market/:marketId" element={<MarketDetail />} />
             <Route path="trader/:address" element={<TraderProfile />} />
             <Route path="leaderboard" element={<TraderLeaderboard />} />
+            <Route path="insights" element={<Insights />} />
           </Route>
         </Routes>
       </BrowserRouter>

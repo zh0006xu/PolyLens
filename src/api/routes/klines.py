@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, Query, HTTPException
 from pydantic import BaseModel
 
 from ..deps import get_db, get_db_path
-from ...dashboard.aggregator import KlineAggregator
+from ...core.klines import KlineAggregator
 
 router = APIRouter(prefix="/klines", tags=["klines"])
 

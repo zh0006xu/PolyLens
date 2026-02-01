@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 
 from ..deps import get_db, get_db_path
-from ...dashboard.whale_detector import WhaleDetector
+from ...core.whale_detector import WhaleDetector
 
 router = APIRouter(prefix="/whales", tags=["whales"])
 

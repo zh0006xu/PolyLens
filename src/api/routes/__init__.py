@@ -9,6 +9,7 @@ from .ws import router as ws_router
 from .metrics import router as metrics_router
 from .categories import router as categories_router
 from .traders import router as traders_router
+from .insights import router as insights_router
 
 __all__ = [
     "markets_router",
@@ -18,4 +19,5 @@ __all__ = [
     "metrics_router",
     "categories_router",
     "traders_router",
+    "insights_router",
 ]

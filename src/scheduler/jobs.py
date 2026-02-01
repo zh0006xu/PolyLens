@@ -12,9 +12,64 @@ from apscheduler.triggers.interval import IntervalTrigger
 
 from ..config import DATABASE_PATH
 from ..core.indexer import sync_trades
-from ..dashboard.whale_detector import WhaleDetector
+from ..core.whale_detector import WhaleDetector
 
 logger = logging.getLogger(__name__)
+
+
+def _update_market_prices(conn: sqlite3.Connection) -> int:
+    """
+    更新最近活跃市场的 outcome_prices（基于 trades 表的最新交易）
+
+    只更新最近 1 小时有交易的市场，避免全表扫描
+    """
+    cursor = conn.cursor()
+
+    # 获取最近有交易的市场及其最新价格
+    cursor.execute("""
+        WITH recent_markets AS (
+            SELECT DISTINCT market_id
+            FROM trades
+            WHERE timestamp >= datetime('now', '-1 hour')
+        ),
+        latest_prices AS (
+            SELECT
+                t.market_id,
+                t.outcome,
+                t.price,
+                ROW_NUMBER() OVER (PARTITION BY t.market_id, t.outcome ORDER BY t.timestamp DESC) as rn
+            FROM trades t
+            WHERE t.market_id IN (SELECT market_id FROM recent_markets)
+              AND t.outcome IN ('YES', 'NO')
+        )
+        SELECT
+            market_id,
+            MAX(CASE WHEN outcome = 'YES' THEN price END) as yes_price,
+            MAX(CASE WHEN outcome = 'NO' THEN price END) as no_price
+        FROM latest_prices
+        WHERE rn = 1
+        GROUP BY market_id
+    """)
+
+    rows = cursor.fetchall()
+    updated = 0
+
+    for row in rows:
+        market_id = row[0]
+        yes_price = row[1] or 0.5
+        no_price = row[2] or 0.5
+
+        # 格式化为 JSON 数组字符串
+        outcome_prices = f'[{yes_price:.4f}, {no_price:.4f}]'
+
+        cursor.execute(
+            "UPDATE markets SET outcome_prices = ? WHERE id = ?",
+            (outcome_prices, market_id)
+        )
+        updated += cursor.rowcount
+
+    conn.commit()
+    return updated
 
 
 class SyncScheduler:
@@ -69,7 +124,14 @@ class SyncScheduler:
             inserted = result.get("inserted_trades", 0)
             logger.info(f"[Sync #{self.sync_count}] Synced {inserted} new trades")
 
-            # 2. 检测新鲸鱼并推送通知
+            # 2. 更新市场价格 - 暂时禁用（查询太慢）
+            # TODO: 优化后重新启用
+            # if inserted > 0:
+            #     price_updated = _update_market_prices(conn)
+            #     if price_updated > 0:
+            #         logger.info(f"[Sync #{self.sync_count}] Updated prices for {price_updated} markets")
+
+            # 3. 检测新鲸鱼并推送通知
             if inserted > 0:
                 detector = WhaleDetector(self.db_path, threshold_usd=self.whale_threshold)
                 new_whales = detector.detect_new_whales()

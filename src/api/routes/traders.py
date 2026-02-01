@@ -369,39 +369,79 @@ def _fetch_biggest_win(address: str) -> Optional[float]:
 
 
 def _fetch_win_rate(address: str) -> Optional[float]:
-    """Calculate win rate from positions (percentage of profitable positions)"""
+    """
+    Calculate win rate from CLOSED positions only (value-weighted).
+
+    Algorithm:
+    - Only use closed positions (realized results are definitive)
+    - Weight by absolute value of realizedPnl (larger bets matter more)
+    - win_rate = total_profit / (total_profit + total_loss) * 100
+
+    Note: The /closed-positions API returns positions sorted by realizedPnl.
+    To get both winning and losing positions, we fetch:
+    - Top 250 by realizedPnl DESC (most profitable)
+    - Top 250 by realizedPnl ASC (most losing)
+    Then deduplicate by asset ID.
+    """
     try:
-        positions = _data_api_get(
-            "/positions",
-            {
-                "user": address,
-                "limit": 500,
-            },
-        )
-        if not positions:
-            return None
+        total_profit = 0.0  # sum of positive realizedPnl
+        total_loss = 0.0    # sum of absolute negative realizedPnl
+        seen_assets = set()
 
-        # Count positions with any PnL (realized or unrealized)
-        winning = 0
-        losing = 0
-        for pos in positions:
-            realized = float(pos.get("realizedPnl") or 0)
-            cash_pnl = float(pos.get("cashPnl") or 0)
-            # Use cashPnl as it includes both realized and unrealized
-            pnl = cash_pnl if cash_pnl != 0 else realized
-            if pnl > 0:
-                winning += 1
-            elif pnl < 0:
-                losing += 1
+        # Fetch profitable positions (DESC - default)
+        try:
+            winning_positions = _data_api_get(
+                "/closed-positions",
+                {
+                    "user": address,
+                    "limit": 250,
+                    "sortBy": "REALIZEDPNL",
+                    "sortDirection": "DESC",
+                },
+            )
+            for pos in winning_positions:
+                asset = pos.get("asset")
+                if asset and asset not in seen_assets:
+                    seen_assets.add(asset)
+                    realized = float(pos.get("realizedPnl") or 0)
+                    if realized > 0:
+                        total_profit += realized
+                    elif realized < 0:
+                        total_loss += abs(realized)
+        except Exception:
+            pass
 
-        total = winning + losing
+        # Fetch losing positions (ASC)
+        try:
+            losing_positions = _data_api_get(
+                "/closed-positions",
+                {
+                    "user": address,
+                    "limit": 250,
+                    "sortBy": "REALIZEDPNL",
+                    "sortDirection": "ASC",
+                },
+            )
+            for pos in losing_positions:
+                asset = pos.get("asset")
+                if asset and asset not in seen_assets:
+                    seen_assets.add(asset)
+                    realized = float(pos.get("realizedPnl") or 0)
+                    if realized > 0:
+                        total_profit += realized
+                    elif realized < 0:
+                        total_loss += abs(realized)
+        except Exception:
+            pass
+
+        total = total_profit + total_loss
         if total == 0:
             return None
 
-        win_rate = (winning / total) * 100
+        win_rate = (total_profit / total) * 100
         return round(win_rate, 1)
     except Exception as e:
-        print(f"[WARN] win rate calculation failed for {address}: {e}")
+        logger.warning(f"[WARN] win rate calculation failed for {address}: {e}")
     return None
 
 

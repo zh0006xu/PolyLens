@@ -17,6 +17,7 @@ from .routes import (
     metrics_router,
     categories_router,
     traders_router,
+    insights_router,
 )
 from .websocket.manager import ws_manager
 from ..scheduler.jobs import SyncScheduler
@@ -40,7 +41,7 @@ async def lifespan(app: FastAPI):
 
     # 从环境变量读取配置
     db_path = os.environ.get("DATABASE_PATH", DATABASE_PATH)
-    sync_interval = int(os.environ.get("SYNC_INTERVAL", "30"))
+    sync_interval = int(os.environ.get("SYNC_INTERVAL", "10"))
     enable_scheduler = os.environ.get("ENABLE_SCHEDULER", "1") == "1"
     whale_threshold = float(os.environ.get("WHALE_THRESHOLD", "1000"))
 
@@ -91,6 +92,7 @@ app.include_router(ws_router, prefix="/api")
 app.include_router(metrics_router, prefix="/api")
 app.include_router(categories_router, prefix="/api")
 app.include_router(traders_router, prefix="/api")
+app.include_router(insights_router, prefix="/api")
 
 
 @app.get("/")
@@ -107,6 +109,9 @@ def root():
             "whales": "/api/whales",
             "metrics": "/api/metrics/{market_id}",
             "traders": "/api/traders/{address}",
+            "insights_hot_markets": "/api/insights/hot-markets",
+            "insights_volume_anomalies": "/api/insights/volume-anomalies",
+            "insights_smart_money": "/api/insights/smart-money",
             "websocket_whales": "ws://host/api/ws/whales",
             "websocket_trades": "ws://host/api/ws/trades",
             "websocket_status": "/api/ws/status",
