@@ -1,7 +1,7 @@
 # PolyLens
 
 <div align="center">
-  <img src="web/public/logo-full.png" alt="PolyLens Logo" width="400"/>
+  <img src="web/dist/logo-full.png" alt="PolyLens Logo" width="400"/>
   <p>
     将原始链上透明度转化为可操作的交易情报<br/>
     发现 Alpha · 追踪鲸鱼 · 验证交易
@@ -164,7 +164,7 @@ graph LR
 
 ## 🤝 贡献与致谢
 
-*   **开发者**: [Leon/zh0006xu]
+*   **开发者**: [Leon/zh0006xu](https://github.com/zh0006xu)
 *   **特别感谢**: [OGBC Team](https://github.com/ogalias/OGBC-Intern-Project) 提供的资源
 
 ---
