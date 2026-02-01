@@ -2,7 +2,7 @@
 # PolyLens
 
 <div align="center">
-  <img src="web/dist/logo-full.png" alt="PolyLens Logo" width="800"/>
+  <img src="web/public/logo-full.png" alt="PolyLens Logo" width="100%"/>
   <p>
     将原始链上透明度转化为可操作的交易情报<br/>
     发现 Alpha · 追踪鲸鱼 · 验证交易
@@ -93,6 +93,7 @@
 <div align="center">
   <img src="screenshots/insights.png" alt="Insights" width="800" style="border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"/>
 </div>
+
 ---
 
 ## 🚀 快速开始 (Quick Start)
