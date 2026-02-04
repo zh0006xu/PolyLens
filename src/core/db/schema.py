@@ -139,6 +139,10 @@ def init_db(db_path: str) -> sqlite3.Connection:
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_trades_timestamp ON trades(timestamp)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_trades_maker ON trades(maker)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_trades_taker ON trades(taker)")
+    # 复合索引 - 优化 metrics 时间范围查询
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_trades_market_timestamp ON trades(market_id, timestamp)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_trades_market_token_timestamp ON trades(market_id, token_id, timestamp)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_trades_market_side_timestamp ON trades(market_id, side, timestamp)")
 
     # =========================================================================
     # whale_trades 表 - 鲸鱼交易
@@ -287,6 +291,11 @@ def migrate_db(db_path: str) -> None:
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_trades_maker ON trades(maker)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_trades_taker ON trades(taker)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_whales_trader ON whale_trades(trader)")
+        # 复合索引 - 优化 metrics 时间范围查询
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_trades_market_timestamp ON trades(market_id, timestamp)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_trades_market_token_timestamp ON trades(market_id, token_id, timestamp)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_trades_market_side_timestamp ON trades(market_id, side, timestamp)")
+        print("Created composite indexes for trades table")
     except sqlite3.OperationalError:
         pass
 

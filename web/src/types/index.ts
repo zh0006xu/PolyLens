@@ -19,6 +19,9 @@ export interface Market {
   liquidity: number;
   best_bid: number | null;
   best_ask: number | null;
+  // Latest trade prices
+  latest_yes_price: number | null;
+  latest_no_price: number | null;
 }
 
 export interface MarketListResponse {

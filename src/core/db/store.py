@@ -352,6 +352,13 @@ def insert_trade(conn: sqlite3.Connection, trade: Dict[str, Any]) -> Optional[in
                 trade.get("timestamp"),
             ),
         )
+        # Update trade_count in markets table
+        market_id = trade.get("market_id")
+        if market_id:
+            cursor.execute(
+                "UPDATE markets SET trade_count = trade_count + 1 WHERE id = ?",
+                (market_id,),
+            )
         # conn.commit()  <-- Defer commit to caller
         return cursor.lastrowid
     except sqlite3.IntegrityError:

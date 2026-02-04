@@ -38,6 +38,9 @@ class MarketResponse(BaseModel):
     liquidity: float = 0.0
     best_bid: Optional[float] = None
     best_ask: Optional[float] = None
+    # Latest trade prices
+    latest_yes_price: Optional[float] = None
+    latest_no_price: Optional[float] = None
 
 
 class MarketListResponse(BaseModel):
@@ -80,10 +83,12 @@ def get_markets(
     """获取市场列表（支持分类、排序、搜索）"""
     cursor = conn.cursor()
 
-    # Simple query using pre-computed columns (faster than JOIN with trades)
+    # Query with latest trade prices via subqueries
     query = """
         SELECT
-            m.*
+            m.*,
+            (SELECT price FROM trades WHERE market_id = m.id AND outcome = 'YES' ORDER BY timestamp DESC LIMIT 1) as latest_yes_price,
+            (SELECT price FROM trades WHERE market_id = m.id AND outcome = 'NO' ORDER BY timestamp DESC LIMIT 1) as latest_no_price
         FROM markets m
     """
 
@@ -167,6 +172,9 @@ def get_markets(
                 liquidity=row["liquidity"] or 0.0,
                 best_bid=row["best_bid"],
                 best_ask=row["best_ask"],
+                # Latest trade prices
+                latest_yes_price=row["latest_yes_price"],
+                latest_no_price=row["latest_no_price"],
             )
         )
 

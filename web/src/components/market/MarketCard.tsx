@@ -9,6 +9,7 @@ interface MarketCardProps {
 }
 
 export function MarketCard({ market }: MarketCardProps) {
+  // Use outcome_prices from Polymarket API (always synced, YES + NO = 100%)
   const [yesPrice, noPrice] = parseOutcomePrices(market.outcome_prices);
   const volume = market.volume || market.volume_24h || 0;
 

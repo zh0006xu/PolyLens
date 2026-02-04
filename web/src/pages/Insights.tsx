@@ -6,14 +6,14 @@ import { formatUSD } from '../utils/format';
 
 // ============== Helper Components ==============
 
-// 问号提示组件
+// 补充信息提示组件
 function InfoTooltip({ text }: { text: string }) {
   return (
     <div className="group relative inline-flex ml-1">
-      <span className="w-4 h-4 rounded-full bg-slate-700 text-slate-400 text-xs flex items-center justify-center cursor-help hover:bg-slate-600">
-        ?
+      <span className="info-tooltip-trigger w-3.5 h-3.5 rounded-full bg-slate-600 text-slate-300 text-[10px] flex items-center justify-center cursor-pointer hover:bg-slate-500">
+        !
       </span>
-      <div className="hidden group-hover:block absolute right-0 top-full mt-1 z-20 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-300 w-64 shadow-lg">
+      <div className="info-tooltip-content hidden group-hover:block absolute left-0 top-full mt-1 z-20 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-300 w-64 shadow-lg text-left normal-case font-normal">
         {text}
       </div>
     </div>

@@ -33,26 +33,14 @@ export function MetricCard({ title, value, subtitle, trend, icon, tooltip }: Met
                 onMouseEnter={() => setShowTooltip(true)}
                 onMouseLeave={() => setShowTooltip(false)}
               >
-                <svg
-                  className="w-3 h-3 text-slate-500 hover:text-slate-300 cursor-help"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
+                <span className="info-tooltip-trigger w-3.5 h-3.5 rounded-full bg-slate-600 text-slate-300 text-[10px] flex items-center justify-center cursor-pointer hover:bg-slate-500">
+                  !
+                </span>
                 {showTooltip && (
-                  <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-slate-700 text-slate-200 text-xs rounded-lg shadow-lg">
-                    <div className="font-semibold text-white mb-1">Formula:</div>
+                  <div className="info-tooltip-content absolute z-50 bottom-full left-0 mb-2 w-64 p-3 bg-slate-700 text-slate-200 text-xs rounded-lg shadow-lg text-left normal-case font-normal">
                     <div className="text-slate-300 mb-2">{tooltip.formula}</div>
-                    <div className="font-semibold text-white mb-1">Meaning:</div>
                     <div className="text-slate-300">{tooltip.meaning}</div>
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-700" />
+                    <div className="absolute top-full left-4 border-4 border-transparent border-t-slate-700" />
                   </div>
                 )}
               </div>

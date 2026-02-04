@@ -48,13 +48,13 @@ export function TraderPatterns({ address }: TraderPatternsProps) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-slate-950/60 border border-slate-800 rounded-lg p-4">
-          <div className="text-xs text-slate-400">Buy vs Sell Volume</div>
-          <div className="flex items-center justify-between text-sm text-slate-200 mt-2">
+        <div className="trading-pattern-card bg-slate-950/60 border border-slate-800 rounded-lg p-4">
+          <div className="text-sm text-slate-400 font-medium">Buy vs Sell Volume</div>
+          <div className="flex items-center justify-between text-xs text-slate-200 mt-2">
             <span>Buy</span>
             <span>{formatUSD(data.buy_volume)}</span>
           </div>
-          <div className="flex items-center justify-between text-sm text-slate-200 mt-1">
+          <div className="flex items-center justify-between text-xs text-slate-200 mt-1">
             <span>Sell</span>
             <span>{formatUSD(data.sell_volume)}</span>
           </div>
@@ -62,26 +62,26 @@ export function TraderPatterns({ address }: TraderPatternsProps) {
             <div className="h-full bg-emerald-500" style={{ width: `${buyPercent}%` }} />
           </div>
         </div>
-        <div className="bg-slate-950/60 border border-slate-800 rounded-lg p-4">
-          <div className="text-xs text-slate-400">YES Preference</div>
+        <div className="trading-pattern-card bg-slate-950/60 border border-slate-800 rounded-lg p-4">
+          <div className="text-sm text-slate-400 font-medium">YES Preference</div>
           <div className="text-2xl font-semibold text-white mt-2">{yesPercentage}%</div>
           <div className="text-xs text-slate-500 mt-1">Share of volume on YES</div>
         </div>
-        <div className="bg-slate-950/60 border border-slate-800 rounded-lg p-4">
-          <div className="text-xs text-slate-400">Avg Trade Size</div>
+        <div className="trading-pattern-card bg-slate-950/60 border border-slate-800 rounded-lg p-4">
+          <div className="text-sm text-slate-400 font-medium">Avg Trade Size</div>
           <div className="text-2xl font-semibold text-white mt-2">
             {formatUSD(data.avg_trade_size)}
           </div>
           <div className="text-xs text-slate-500 mt-1">Average USD per trade</div>
         </div>
-        <div className="bg-slate-950/60 border border-slate-800 rounded-lg p-4">
-          <div className="text-xs text-slate-400 mb-3">Top Categories</div>
+        <div className="trading-pattern-card bg-slate-950/60 border border-slate-800 rounded-lg p-4">
+          <div className="text-sm text-slate-400 font-medium mb-3">Top Categories</div>
           <div className="space-y-2">
             {topCategories.length === 0 ? (
-              <div className="text-slate-500 text-sm">No category data</div>
+              <div className="text-slate-500 text-xs">No category data</div>
             ) : (
               topCategories.map(([category, volume]) => (
-                <div key={category} className="flex items-center justify-between text-sm">
+                <div key={category} className="flex items-center justify-between text-xs">
                   <span className="text-slate-300">{category}</span>
                   <span className="text-slate-200 font-mono">{formatUSD(volume)}</span>
                 </div>

@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 
 :root {
@@ -8,12 +9,57 @@
   --warning: #f59e0b;
 }
 
+/* Dark theme (default) */
+:root,
+.dark {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
+  --bg-card: #0f172a;
+  --bg-card-hover: #1e293b;
+  --border-color: #334155;
+  --border-color-light: #475569;
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --text-faint: #64748b;
+}
+
+/* Light theme - Modern warm palette */
+.light {
+  --bg-primary: #fafbfc;
+  --bg-secondary: #f4f6f8;
+  --bg-tertiary: #ebeef2;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f8f9fb;
+  --border-color: #e5e8ec;
+  --border-color-light: #d1d5db;
+  --text-primary: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --text-faint: #a0aec0;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.06), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+  --accent-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
 body {
   margin: 0;
   min-height: 100vh;
-  background-color: #0f172a;
-  color: #e2e8f0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: "Manrope", "Segoe UI", system-ui, sans-serif;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.light body {
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(120, 119, 198, 0.15), transparent),
+    radial-gradient(ellipse 60% 40% at 90% 10%, rgba(99, 102, 241, 0.08), transparent),
+    radial-gradient(ellipse 50% 30% at 10% 20%, rgba(168, 85, 247, 0.06), transparent),
+    linear-gradient(180deg, #fafbfc 0%, #f0f2f5 50%, #e8ebf0 100%);
+  background-attachment: fixed;
 }
 
 #root {
@@ -28,4 +74,445 @@ body {
 
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+/* Theme-aware utility classes */
+.bg-theme-primary {
+  background-color: var(--bg-primary);
+}
+
+.bg-theme-secondary {
+  background-color: var(--bg-secondary);
+}
+
+.bg-theme-card {
+  background-color: var(--bg-card);
+}
+
+.border-theme {
+  border-color: var(--border-color);
+}
+
+.text-theme-primary {
+  color: var(--text-primary);
+}
+
+.text-theme-secondary {
+  color: var(--text-secondary);
+}
+
+.text-theme-muted {
+  color: var(--text-muted);
+}
+
+/* Override Tailwind dark colors for light mode */
+.light .bg-slate-950 {
+  background-color: #f8fafc;
+}
+
+.light .bg-slate-900 {
+  background-color: #ffffff;
+}
+
+.light .bg-slate-800 {
+  background-color: #f1f5f9;
+}
+
+.light .bg-slate-700 {
+  background-color: #e2e8f0;
+}
+
+.light .bg-slate-900\/60 {
+  background-color: rgba(255, 255, 255, 0.9);
+}
+
+.light .bg-slate-950\/60 {
+  background-color: #f1f5f9;
+}
+
+/* Trading Patterns cards - light mode */
+.light .trading-pattern-card {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+.light .trading-pattern-card .text-slate-400 {
+  color: #475569 !important;
+}
+
+.light .trading-pattern-card .text-slate-200,
+.light .trading-pattern-card .text-slate-300 {
+  color: #334155 !important;
+}
+
+.light .trading-pattern-card .bg-slate-800 {
+  background-color: #e2e8f0 !important;
+}
+
+/* Insights page - light mode */
+.light .from-slate-900 {
+  --tw-gradient-from: #ffffff !important;
+}
+
+.light .to-slate-800 {
+  --tw-gradient-to: #f8fafc !important;
+}
+
+.light .bg-slate-800\/50 {
+  background-color: rgba(241, 245, 249, 0.8) !important;
+}
+
+.light .hover\:bg-slate-800:hover {
+  background-color: #e2e8f0 !important;
+}
+
+.light .bg-slate-800\/30 {
+  background-color: rgba(241, 245, 249, 0.5) !important;
+}
+
+.light .hover\:bg-slate-800\/30:hover {
+  background-color: rgba(226, 232, 240, 0.5) !important;
+}
+
+/* Info tooltip - light mode */
+.light .info-tooltip-trigger {
+  background-color: #e2e8f0 !important;
+  color: #475569 !important;
+}
+
+.light .info-tooltip-trigger:hover {
+  background-color: #cbd5e1 !important;
+}
+
+.light .info-tooltip-content {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #475569 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+}
+
+.light .info-tooltip-content .text-slate-300 {
+  color: #475569 !important;
+}
+
+.light .border-slate-800 {
+  border-color: #e2e8f0;
+}
+
+.light .border-slate-700 {
+  border-color: #cbd5e1;
+}
+
+.light .border-slate-800\/50 {
+  border-color: rgba(226, 232, 240, 0.8);
+}
+
+.light .text-white {
+  color: #0f172a;
+}
+
+/* Price on colored buttons - slightly transparent */
+.light button.bg-emerald-500 span:first-of-type,
+.light button.bg-red-400 span:first-of-type {
+  color: rgba(255, 255, 255, 0.65) !important;
+}
+
+/* Token name on colored buttons - pure white */
+.light button.bg-emerald-500 span:last-of-type,
+.light button.bg-red-400 span:last-of-type {
+  color: #ffffff !important;
+}
+
+.light .text-slate-100 {
+  color: #0f172a;
+}
+
+.light .text-slate-200 {
+  color: #1e293b;
+}
+
+.light .text-slate-400 {
+  color: #64748b;
+}
+
+.light .text-slate-500 {
+  color: #94a3b8;
+}
+
+.light .text-slate-300 {
+  color: #475569;
+}
+
+.light .text-slate-600 {
+  color: #475569;
+}
+
+.light .hover\:bg-slate-800:hover {
+  background-color: #e2e8f0;
+}
+
+.light .hover\:bg-slate-700:hover {
+  background-color: #cbd5e1;
+}
+
+.light .hover\:text-white:hover {
+  color: #0f172a;
+}
+
+.light .hover\:text-slate-200:hover {
+  color: #0f172a;
+}
+
+/* Light mode - Badge styling for better visibility */
+.light .bg-emerald-900\/50 {
+  background-color: #d1fae5 !important;
+}
+
+.light .text-emerald-400 {
+  color: #047857 !important;
+}
+
+.light .bg-red-900\/50 {
+  background-color: #fee2e2 !important;
+}
+
+.light .text-red-400 {
+  color: #b91c1c !important;
+}
+
+.light .bg-amber-900\/50 {
+  background-color: #fef3c7 !important;
+}
+
+.light .text-amber-400 {
+  color: #b45309 !important;
+}
+
+.light .bg-blue-900\/50 {
+  background-color: #dbeafe !important;
+}
+
+.light .text-blue-400 {
+  color: #1d4ed8 !important;
+}
+
+.light .bg-slate-700 {
+  background-color: #e2e8f0;
+}
+
+.light .text-slate-300 {
+  color: #475569;
+}
+
+/* Solid color badges - success/danger */
+.light .bg-emerald-600 {
+  background-color: #d1fae5 !important;
+  color: #047857 !important;
+}
+
+.light .bg-red-600 {
+  background-color: #fee2e2 !important;
+  color: #b91c1c !important;
+}
+
+/* Light mode - Enhanced card styling */
+.light .bg-slate-900,
+.light .bg-slate-800 {
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+}
+
+.light .bg-slate-900:hover,
+.light .bg-slate-800:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* Light mode - Navbar enhancement */
+.light nav.bg-slate-900 {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+
+/* Light mode - Button and input enhancements */
+.light button.bg-slate-800,
+.light .bg-slate-800.rounded-lg {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+}
+
+.light button.bg-slate-800:hover {
+  background-color: #f8fafc;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+
+/* Light mode - Selected/active button states (Polymarket style) */
+.light .bg-indigo-600 {
+  background-color: #eef2ff !important;
+  color: #4f46e5 !important;
+  box-shadow: none;
+}
+
+.light .bg-indigo-600.text-white {
+  color: #4f46e5 !important;
+}
+
+.light button.bg-indigo-600,
+.light .bg-indigo-600.rounded-lg,
+.light .bg-indigo-600.rounded-md {
+  background-color: #eef2ff !important;
+  color: #4f46e5 !important;
+  border: 1px solid #c7d2fe;
+}
+
+/* Light mode - Table and list enhancements */
+.light tr:hover td {
+  background-color: #f8f9fb;
+}
+
+.light .divide-slate-800 > :not([hidden]) ~ :not([hidden]),
+.light .divide-y.divide-slate-800 > :not([hidden]) ~ :not([hidden]),
+.light div.divide-slate-800 > :not([hidden]) ~ :not([hidden]) {
+  --tw-divide-opacity: 1 !important;
+  border-color: rgb(241 245 249 / var(--tw-divide-opacity)) !important;
+}
+
+/* Light mode - Override all slate-800 borders */
+.light [class*="divide-slate-800"] > :not([hidden]) ~ :not([hidden]) {
+  border-color: #f1f5f9 !important;
+}
+
+/* Light mode - Scrollbar styling */
+.light ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.light ::-webkit-scrollbar-track {
+  background: #f1f3f5;
+  border-radius: 4px;
+}
+
+.light ::-webkit-scrollbar-thumb {
+  background: #c4c9cf;
+  border-radius: 4px;
+}
+
+.light ::-webkit-scrollbar-thumb:hover {
+  background: #a8adb4;
+}
+
+/* Light mode - Focus states */
+.light *:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}
+
+/* Light mode - Link styling in content */
+.light a:not([class]) {
+  color: #6366f1;
+}
+
+.light a:not([class]):hover {
+  color: #4f46e5;
+}
+
+/* Light mode - Badge borders for definition */
+.light span.rounded-full {
+  border: 1px solid transparent;
+}
+
+.light span.rounded-full.bg-emerald-900\/50 {
+  border-color: #a7f3d0;
+}
+
+.light span.rounded-full.bg-blue-900\/50 {
+  border-color: #bfdbfe;
+}
+
+.light span.rounded-full.bg-red-900\/50 {
+  border-color: #fecaca;
+}
+
+.light span.rounded-full.bg-amber-900\/50 {
+  border-color: #fde68a;
+}
+
+/* Light mode - Stat cards */
+.light .bg-gradient-to-br {
+  box-shadow: var(--shadow-md);
+}
+
+/* Light mode - Input fields */
+.light input.bg-slate-900,
+.light input[class*="bg-slate-900"] {
+  background-color: #ffffff;
+  border-color: #e2e5e9;
+  color: #1a202c;
+}
+
+.light input.bg-slate-900::placeholder {
+  color: #9ca3af;
+}
+
+.light input.bg-slate-900:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+/* Light mode - Select dropdowns */
+.light select.bg-slate-800,
+.light select[class*="bg-slate-800"] {
+  background-color: #ffffff;
+  border-color: #e2e5e9;
+  color: #1a202c;
+}
+
+.light select.bg-slate-800:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+/* Light mode - Filter panel background */
+.light .bg-slate-900\/50 {
+  background-color: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px);
+  border: 1px solid #e5e8ec;
+}
+
+/* Light mode - Divider lines */
+.light .bg-slate-700 {
+  background-color: #e2e5e9;
+}
+
+/* Light mode - Checkbox styling */
+.light input[type="checkbox"] {
+  background-color: #ffffff;
+  border-color: #d1d5db;
+}
+
+.light input[type="checkbox"]:checked {
+  background-color: #6366f1;
+  border-color: #6366f1;
+}
+
+/* Light mode - Card hover effect enhancement */
+.light a.block.bg-slate-900:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Light mode - Image placeholders */
+.light .bg-slate-800.aspect-video {
+  background-color: #f1f3f5;
+}
+
+/* Light mode - Improve text contrast */
+.light .text-slate-700 {
+  color: #64748b;
 }

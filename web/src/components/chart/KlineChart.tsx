@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createChart, ColorType, CandlestickSeries, LineSeries, createTextWatermark } from 'lightweight-charts';
+import { useTheme } from '../../contexts';
 import type {
   IChartApi,
   CandlestickData,
@@ -144,6 +145,8 @@ class VolumeHistogramSeries implements ICustomSeriesPaneView<Time, VolumeBarData
 export function KlineChart({ klines, vwap, isLoading, height = 400 }: KlineChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
+  const { resolvedTheme } = useTheme();
+  const isLight = resolvedTheme === 'light';
 
   const [hoveredData, setHoveredData] = useState<HoveredData | null>(null);
   const [maVisibility, setMaVisibility] = useState<Record<number, boolean>>({
@@ -181,6 +184,15 @@ export function KlineChart({ klines, vwap, isLoading, height = 400 }: KlineChart
   useEffect(() => {
     if (!chartContainerRef.current || klines.length === 0) return;
 
+    // Theme-aware colors
+    const chartColors = {
+      grid: isLight ? '#f1f5f9' : '#1e293b',
+      border: isLight ? '#e2e8f0' : '#334155',
+      text: isLight ? '#64748b' : '#9ca3af',
+      crosshair: '#6366f1',
+      watermark: isLight ? '#94a3b8' : '#64748b',
+    };
+
     // Create kline lookup map
     const klineMap = new Map<number, Kline>();
     klines.forEach((k) => klineMap.set(k.time, k));
@@ -196,7 +208,7 @@ export function KlineChart({ klines, vwap, isLoading, height = 400 }: KlineChart
 
     // Common timeScale options for consistent bar spacing
     const commonTimeScaleOptions = {
-      borderColor: '#334155',
+      borderColor: chartColors.border,
       barSpacing: computeBarSpacing(chartWidth, klines.length),
       minBarSpacing: 3,
       rightOffset: 0,
@@ -206,7 +218,7 @@ export function KlineChart({ klines, vwap, isLoading, height = 400 }: KlineChart
 
     // Common rightPriceScale options for alignment - use larger minimumWidth
     const commonPriceScaleOptions = {
-      borderColor: '#334155',
+      borderColor: chartColors.border,
       visible: true,
       autoScale: true,
       scaleMargins: {
@@ -220,7 +232,7 @@ export function KlineChart({ klines, vwap, isLoading, height = 400 }: KlineChart
     const chart = createChart(chartContainerRef.current, {
       layout: {
         background: { type: ColorType.Solid, color: 'transparent' },
-        textColor: '#9ca3af',
+        textColor: chartColors.text,
         panes: {
           enableResize: false,
           separatorColor: 'transparent',
@@ -228,24 +240,24 @@ export function KlineChart({ klines, vwap, isLoading, height = 400 }: KlineChart
         },
       },
       grid: {
-        vertLines: { color: '#1e293b' },
-        horzLines: { color: '#1e293b' },
+        vertLines: { color: chartColors.grid },
+        horzLines: { color: chartColors.grid },
       },
       width: chartWidth,
       height,
       crosshair: {
         mode: 1,
         vertLine: {
-          color: '#6366f1',
+          color: chartColors.crosshair,
           width: 1,
           style: 2,
-          labelBackgroundColor: '#6366f1',
+          labelBackgroundColor: chartColors.crosshair,
         },
         horzLine: {
-          color: '#6366f1',
+          color: chartColors.crosshair,
           width: 1,
           style: 2,
-          labelBackgroundColor: '#6366f1',
+          labelBackgroundColor: chartColors.crosshair,
           labelVisible: false,
         },
       },
@@ -410,7 +422,7 @@ export function KlineChart({ klines, vwap, isLoading, height = 400 }: KlineChart
       lines: [
         {
           text: 'Volume',
-          color: '#64748b',
+          color: chartColors.watermark,
           fontSize: 12,
           fontFamily: 'inherit',
           fontStyle: '',
@@ -503,7 +515,7 @@ export function KlineChart({ klines, vwap, isLoading, height = 400 }: KlineChart
       chart.remove();
       chartRef.current = null;
     };
-  }, [height, klines, vwap, maVisibility]);
+  }, [height, klines, vwap, maVisibility, isLight]);
 
   if (isLoading) {
     return (

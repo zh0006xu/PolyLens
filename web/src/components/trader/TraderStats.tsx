@@ -57,7 +57,15 @@ export function TraderStats({ summary }: TraderStatsProps) {
 
       {/* Win Rate */}
       <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
-        <div className="text-xs text-slate-400 mb-1">Win Rate</div>
+        <div className="text-xs text-slate-400 mb-1 flex items-center gap-1">
+          Win Rate
+          <span
+            className="info-tooltip-trigger w-3.5 h-3.5 rounded-full bg-slate-600 text-slate-300 text-[10px] flex items-center justify-center cursor-pointer hover:bg-slate-500"
+            title="Value-weighted: Total Profit ÷ (Total Profit + Total Loss). High % = more money won, not necessarily more markets won."
+          >
+            !
+          </span>
+        </div>
         <div className={`text-2xl font-bold ${
           summary.win_rate !== null
             ? summary.win_rate >= 50

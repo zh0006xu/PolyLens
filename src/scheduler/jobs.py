@@ -5,6 +5,7 @@
 import sqlite3
 import logging
 import asyncio
+import httpx
 from typing import Callable, Optional, Any
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -15,6 +16,66 @@ from ..core.indexer import sync_trades
 from ..core.whale_detector import WhaleDetector
 
 logger = logging.getLogger(__name__)
+
+
+def _refresh_prices_from_polymarket(conn: sqlite3.Connection, limit: int = 50, max_workers: int = 10) -> int:
+    """
+    从 Polymarket Gamma API 刷新活跃市场的 outcome_prices
+    使用并行请求加速（约 2 秒刷新 50 个市场）
+
+    Args:
+        limit: 刷新市场数量
+        max_workers: 并发请求数（默认 10，太高可能触发 API rate limit）
+    """
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    cursor = conn.cursor()
+
+    # 获取最活跃的市场（按交易量排序）
+    cursor.execute("""
+        SELECT id, slug FROM markets
+        WHERE status = 'active' AND slug IS NOT NULL
+        ORDER BY volume DESC
+        LIMIT ?
+    """, (limit,))
+
+    markets = cursor.fetchall()
+    if not markets:
+        return 0
+
+    def fetch_price(market_id, slug):
+        try:
+            resp = httpx.get(
+                f"https://gamma-api.polymarket.com/markets",
+                params={"slug": slug},
+                timeout=5
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                if data and len(data) > 0:
+                    return market_id, data[0].get("outcomePrices")
+        except Exception:
+            pass
+        return market_id, None
+
+    # 并行请求
+    results = []
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = [executor.submit(fetch_price, m[0], m[1]) for m in markets]
+        results = [f.result() for f in as_completed(futures)]
+
+    # 批量更新数据库
+    updated = 0
+    for market_id, outcome_prices in results:
+        if outcome_prices:
+            cursor.execute(
+                "UPDATE markets SET outcome_prices = ? WHERE id = ?",
+                (outcome_prices, market_id)
+            )
+            updated += 1
+
+    conn.commit()
+    return updated
 
 
 def _update_market_prices(conn: sqlite3.Connection) -> int:
@@ -100,11 +161,24 @@ class SyncScheduler:
         # 鲸鱼通知回调（由外部注入）
         self.whale_notifier: Optional[Callable[[dict], Any]] = None
 
+    def _sync_trades_sync(self) -> dict:
+        """
+        同步执行交易索引（在线程池中运行）
+        """
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        try:
+            result = sync_trades(conn, batch_size=500)
+            return result
+        finally:
+            conn.close()
+
     async def sync_job(self):
         """
         同步任务：索引新交易 -> 检测鲸鱼 -> 推送通知
 
         K 线数据从 trades 实时聚合，无需额外处理
+        使用 asyncio.to_thread 避免阻塞事件循环
         """
         if self.is_syncing:
             logger.warning("Previous sync still running, skipping...")
@@ -114,27 +188,29 @@ class SyncScheduler:
         self.sync_count += 1
 
         try:
-            conn = sqlite3.connect(self.db_path)
-            conn.row_factory = sqlite3.Row
-
-            # 1. 同步最新交易
+            # 1. 同步最新交易 (在线程池中执行，不阻塞事件循环)
             logger.info(f"[Sync #{self.sync_count}] Starting sync...")
-            result = sync_trades(conn, batch_size=500)
+            result = await asyncio.to_thread(self._sync_trades_sync)
 
             inserted = result.get("inserted_trades", 0)
             logger.info(f"[Sync #{self.sync_count}] Synced {inserted} new trades")
 
-            # 2. 更新市场价格 - 暂时禁用（查询太慢）
-            # TODO: 优化后重新启用
-            # if inserted > 0:
-            #     price_updated = _update_market_prices(conn)
-            #     if price_updated > 0:
-            #         logger.info(f"[Sync #{self.sync_count}] Updated prices for {price_updated} markets")
+            # 2. 每次同步都刷新市场价格 (从 Polymarket API，约 2 秒)
+            def refresh_prices():
+                with sqlite3.connect(self.db_path) as conn:
+                    return _refresh_prices_from_polymarket(conn, limit=50)
 
-            # 3. 检测新鲸鱼并推送通知
+            price_updated = await asyncio.to_thread(refresh_prices)
+            if price_updated > 0:
+                logger.info(f"[Sync #{self.sync_count}] Refreshed prices for {price_updated} markets")
+
+            # 3. 检测新鲸鱼并推送通知 (在线程池中执行)
             if inserted > 0:
-                detector = WhaleDetector(self.db_path, threshold_usd=self.whale_threshold)
-                new_whales = detector.detect_new_whales()
+                def detect_whales():
+                    detector = WhaleDetector(self.db_path, threshold_usd=self.whale_threshold)
+                    return detector.detect_new_whales()
+
+                new_whales = await asyncio.to_thread(detect_whales)
 
                 if new_whales:
                     logger.info(
@@ -159,8 +235,6 @@ class SyncScheduler:
                 "from_block": result.get("from_block"),
                 "to_block": result.get("to_block"),
             }
-
-            conn.close()
 
         except Exception as e:
             logger.error(f"[Sync #{self.sync_count}] Sync job failed: {e}")

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createChart, ColorType, LineSeries } from 'lightweight-charts';
 import type { IChartApi, LineData, Time } from 'lightweight-charts';
 import { useTraderPnLHistory } from '../../hooks/useTrader';
+import { useTheme } from '../../contexts';
 import { Spinner } from '../common/Spinner';
 
 interface TraderPnLChartProps {
@@ -29,22 +30,31 @@ export function TraderPnLChart({ address }: TraderPnLChartProps) {
   const [period, setPeriod] = useState<Period>('ALL');
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
+  const { resolvedTheme } = useTheme();
+  const isLight = resolvedTheme === 'light';
 
   const { data, isLoading } = useTraderPnLHistory(address, period);
 
   useEffect(() => {
     if (!chartContainerRef.current || !data?.data_points?.length) return;
 
+    // Theme-aware colors
+    const chartColors = {
+      grid: isLight ? '#f1f5f9' : '#1e293b',
+      border: isLight ? '#e2e8f0' : '#334155',
+      text: isLight ? '#64748b' : '#9ca3af',
+    };
+
     const chartWidth = chartContainerRef.current.clientWidth;
 
     const chart = createChart(chartContainerRef.current, {
       layout: {
         background: { type: ColorType.Solid, color: 'transparent' },
-        textColor: '#9ca3af',
+        textColor: chartColors.text,
       },
       grid: {
-        vertLines: { color: '#1e293b' },
-        horzLines: { color: '#1e293b' },
+        vertLines: { color: chartColors.grid },
+        horzLines: { color: chartColors.grid },
       },
       width: chartWidth,
       height: 200,
@@ -64,12 +74,12 @@ export function TraderPnLChart({ address }: TraderPnLChartProps) {
         },
       },
       timeScale: {
-        borderColor: '#334155',
+        borderColor: chartColors.border,
         timeVisible: true,
         secondsVisible: false,
       },
       rightPriceScale: {
-        borderColor: '#334155',
+        borderColor: chartColors.border,
         visible: true,
       },
     });
@@ -112,7 +122,7 @@ export function TraderPnLChart({ address }: TraderPnLChartProps) {
       chart.remove();
       chartRef.current = null;
     };
-  }, [data]);
+  }, [data, isLight]);
 
   const currentPnL = data?.total_pnl ?? data?.data_points?.[data.data_points.length - 1]?.pnl;
   const isPositive = (currentPnL ?? 0) >= 0;

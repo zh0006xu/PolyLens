@@ -1,10 +1,11 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useMarket, useMarketPrice } from '../hooks/useMarkets';
+import { useMarket } from '../hooks/useMarkets';
 import { useMetrics } from '../hooks/useMetrics';
 import { useWhales } from '../hooks/useWhales';
 import { useKlines } from '../hooks/useKlines';
 import { useMarketHolders } from '../hooks/useHolders';
+import { useTheme } from '../contexts';
 import { PriceBar } from '../components/market';
 import { MetricsPanel } from '../components/metrics';
 import { WhaleTable } from '../components/whale';
@@ -17,6 +18,8 @@ import { parseOutcomePrices, formatVolume, formatDate, parseOutcomeNames, trunca
 export function MarketDetail() {
   const { marketId } = useParams<{ marketId: string }>();
   const id = marketId ? parseInt(marketId, 10) : undefined;
+  const { resolvedTheme } = useTheme();
+  const isLight = resolvedTheme === 'light';
 
   // Scroll to top when navigating to a new market
   useEffect(() => {
@@ -31,7 +34,6 @@ export function MarketDetail() {
   const holderLimit = 10;
 
   const { data: market, isLoading: marketLoading } = useMarket(id);
-  const { data: price } = useMarketPrice(id);
   const { data: holdersData, isLoading: holdersLoading } = useMarketHolders(id, holderLimit);
 
   // Parse outcome names from market data
@@ -72,9 +74,8 @@ export function MarketDetail() {
     );
   }
 
-  const [price0, price1] = parseOutcomePrices(market.outcome_prices);
-  const currentPrice0 = price?.yes_price ?? price0;
-  const currentPrice1 = price?.no_price ?? price1;
+  // Use outcome_prices from Polymarket API (always synced, YES + NO = 100%)
+  const [currentPrice0, currentPrice1] = parseOutcomePrices(market.outcome_prices);
 
   // Polymarket URL (market slug maps to /market/, not /event/)
   const polymarketUrl = `https://polymarket.com/market/${market.slug}`;
@@ -147,26 +148,42 @@ export function MarketDetail() {
       </div>
 
       {/* Price Section */}
-      <div className="bg-slate-900 rounded-xl border border-slate-800 p-6">
+      <div className={`rounded-xl border p-6 ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-4">
             <button
               onClick={() => setSelectedOutcomeIdx(0)}
               className={`px-6 py-3 rounded-lg font-bold text-lg transition-colors ${selectedOutcomeIdx === 0
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                  ? 'bg-emerald-500'
+                  : isLight
+                    ? 'bg-slate-100 hover:bg-slate-200'
+                    : 'bg-slate-800 hover:bg-slate-700'
                 }`}
             >
-              {outcomeNames[0]} ${currentPrice0.toFixed(2)}
+              <span className={selectedOutcomeIdx === 0 ? 'text-white' : isLight ? 'text-slate-400' : 'text-slate-300'}>
+                {outcomeNames[0]}
+              </span>
+              {' '}
+              <span className={selectedOutcomeIdx === 0 ? 'text-white/60' : isLight ? 'text-slate-500' : 'text-slate-500'}>
+                {(currentPrice0 * 100).toFixed(1)}¢
+              </span>
             </button>
             <button
               onClick={() => setSelectedOutcomeIdx(1)}
               className={`px-6 py-3 rounded-lg font-bold text-lg transition-colors ${selectedOutcomeIdx === 1
-                  ? 'bg-red-600 text-white'
-                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                  ? 'bg-red-400'
+                  : isLight
+                    ? 'bg-slate-100 hover:bg-slate-200'
+                    : 'bg-slate-800 hover:bg-slate-700'
                 }`}
             >
-              {outcomeNames[1]} ${currentPrice1.toFixed(2)}
+              <span className={selectedOutcomeIdx === 1 ? 'text-white' : isLight ? 'text-slate-400' : 'text-slate-300'}>
+                {outcomeNames[1]}
+              </span>
+              {' '}
+              <span className={selectedOutcomeIdx === 1 ? 'text-white/60' : isLight ? 'text-slate-500' : 'text-slate-500'}>
+                {(currentPrice1 * 100).toFixed(1)}¢
+              </span>
             </button>
           </div>
         </div>
@@ -273,7 +290,7 @@ export function MarketDetail() {
                 <div key={label} className={`rounded-lg border ${border} bg-slate-900/60 p-3`}>
                   <div className={`text-sm font-semibold ${color} mb-2`}>{label} Top Holders</div>
                   {columnHolders.length ? (
-                    <div className="divide-y divide-slate-800">
+                    <div className={`divide-y ${isLight ? 'divide-slate-200' : 'divide-slate-800'}`}>
                       {columnHolders.map((holder, index) => {
                         const displayName = getHolderName(
                           holder.name,

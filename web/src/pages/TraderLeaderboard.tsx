@@ -1,9 +1,36 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useTraderLeaderboard } from '../hooks/useTrader';
+import { fetchTraderLeaderboard } from '../api/trader';
 import { TraderSearch, TraderLevelBadge } from '../components/trader';
-import { Spinner } from '../components/common';
 import { formatUSD, truncateAddress } from '../utils/format';
+
+// Skeleton row component for loading state
+function SkeletonRow() {
+  return (
+    <tr className="border-b border-slate-800/50">
+      <td className="py-3 px-4">
+        <div className="h-4 w-8 bg-slate-700 rounded animate-pulse" />
+      </td>
+      <td className="py-3 px-4">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-slate-700 animate-pulse" />
+          <div className="space-y-2">
+            <div className="h-4 w-32 bg-slate-700 rounded animate-pulse" />
+            <div className="h-3 w-20 bg-slate-800 rounded animate-pulse" />
+          </div>
+        </div>
+      </td>
+      <td className="py-3 px-4 text-right">
+        <div className="h-4 w-24 bg-slate-700 rounded animate-pulse ml-auto" />
+      </td>
+      <td className="py-3 px-4 text-right">
+        <div className="h-4 w-20 bg-slate-700 rounded animate-pulse ml-auto" />
+      </td>
+    </tr>
+  );
+}
 
 type SortField = 'vol' | 'pnl';
 type TimePeriod = 'DAY' | 'WEEK' | 'MONTH' | 'ALL';
@@ -24,12 +51,23 @@ export function TraderLeaderboard() {
     const isValid = timePeriodOptions.some((option) => option.value === normalized);
     return (isValid ? normalized : 'DAY') as TimePeriod;
   });
+  const queryClient = useQueryClient();
   const { data, isLoading } = useTraderLeaderboard(sortField === 'vol' ? 'VOL' : 'PNL', 25, 0, timePeriod, 'OVERALL');
 
   const handleSort = (field: SortField) => {
     if (sortField !== field) {
       setSortField(field);
     }
+  };
+
+  // Prefetch data on hover
+  const handleTimePeriodHover = (period: TimePeriod) => {
+    const orderBy = sortField === 'vol' ? 'VOL' : 'PNL';
+    queryClient.prefetchQuery({
+      queryKey: ['trader', 'leaderboard', orderBy, period, 'OVERALL', 25, 0],
+      queryFn: () => fetchTraderLeaderboard(orderBy, 25, 0, period, 'OVERALL'),
+      staleTime: 30 * 1000,
+    });
   };
 
   const handleTimePeriodChange = (nextPeriod: TimePeriod) => {
@@ -86,6 +124,7 @@ export function TraderLeaderboard() {
             <button
               key={option.value}
               onClick={() => handleTimePeriodChange(option.value)}
+              onMouseEnter={() => handleTimePeriodHover(option.value)}
               className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
                 timePeriod === option.value
                   ? 'bg-indigo-600 text-white'
@@ -100,8 +139,22 @@ export function TraderLeaderboard() {
 
       <div className="bg-slate-900 rounded-xl border border-slate-800 p-6">
         {isLoading ? (
-          <div className="flex justify-center py-8">
-            <Spinner />
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-slate-400 text-xs uppercase tracking-wide border-b border-slate-800">
+                  <th className="text-left py-3 px-4 w-16">Rank</th>
+                  <th className="text-left py-3 px-4">Trader</th>
+                  <th className="text-right py-3 px-4">Volume</th>
+                  <th className="text-right py-3 px-4">PnL</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Array.from({ length: 10 }).map((_, i) => (
+                  <SkeletonRow key={i} />
+                ))}
+              </tbody>
+            </table>
           </div>
         ) : !data || data.traders.length === 0 ? (
           <div className="text-center text-slate-400 py-8">No traders found</div>

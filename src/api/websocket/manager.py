@@ -6,7 +6,7 @@ import asyncio
 import json
 import logging
 from datetime import datetime
-from typing import Dict, Set, Any
+from typing import Dict, Set
 
 from fastapi import WebSocket
 
@@ -46,12 +46,14 @@ class ConnectionManager:
         )
 
         # 发送欢迎消息
-        await websocket.send_json({
-            "type": "connected",
-            "channel": channel,
-            "message": f"Connected to {channel} channel",
-            "timestamp": datetime.utcnow().isoformat() + "Z",
-        })
+        await websocket.send_json(
+            {
+                "type": "connected",
+                "channel": channel,
+                "message": f"Connected to {channel} channel",
+                "timestamp": datetime.utcnow().isoformat() + "Z",
+            }
+        )
 
     async def disconnect(self, websocket: WebSocket, channel: str = "whales"):
         """断开连接"""
@@ -104,21 +106,24 @@ class ConnectionManager:
         Args:
             whale_data: 鲸鱼交易数据
         """
-        await self.broadcast("whales", {
-            "type": "whale_alert",
-            "data": {
-                "tx_hash": whale_data.get("tx_hash"),
-                "market_slug": whale_data.get("market_slug"),
-                "question": whale_data.get("question"),
-                "side": whale_data.get("side"),
-                "outcome": whale_data.get("outcome"),
-                "price": whale_data.get("price"),
-                "size": whale_data.get("size"),
-                "usd_value": whale_data.get("usd_value"),
-                "trader": whale_data.get("trader"),
-                "timestamp": whale_data.get("timestamp"),
+        await self.broadcast(
+            "whales",
+            {
+                "type": "whale_alert",
+                "data": {
+                    "tx_hash": whale_data.get("tx_hash"),
+                    "market_slug": whale_data.get("market_slug"),
+                    "question": whale_data.get("question"),
+                    "side": whale_data.get("side"),
+                    "outcome": whale_data.get("outcome"),
+                    "price": whale_data.get("price"),
+                    "size": whale_data.get("size"),
+                    "usd_value": whale_data.get("usd_value"),
+                    "trader": whale_data.get("trader"),
+                    "timestamp": whale_data.get("timestamp"),
+                },
             },
-        })
+        )
 
     async def broadcast_trade(self, trade_data: dict):
         """
@@ -127,10 +132,13 @@ class ConnectionManager:
         Args:
             trade_data: 交易数据
         """
-        await self.broadcast("trades", {
-            "type": "new_trade",
-            "data": trade_data,
-        })
+        await self.broadcast(
+            "trades",
+            {
+                "type": "new_trade",
+                "data": trade_data,
+            },
+        )
 
     @property
     def connection_count(self) -> Dict[str, int]:
