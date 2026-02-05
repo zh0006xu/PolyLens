@@ -41,6 +41,8 @@ class MarketResponse(BaseModel):
     # Latest trade prices
     latest_yes_price: Optional[float] = None
     latest_no_price: Optional[float] = None
+    # Event slug for Polymarket URL
+    event_slug: Optional[str] = None
 
 
 class MarketListResponse(BaseModel):
@@ -83,13 +85,15 @@ def get_markets(
     """获取市场列表（支持分类、排序、搜索）"""
     cursor = conn.cursor()
 
-    # Query with latest trade prices via subqueries
+    # Query with latest trade prices via subqueries and event_slug
     query = """
         SELECT
             m.*,
+            e.slug as event_slug,
             (SELECT price FROM trades WHERE market_id = m.id AND outcome = 'YES' ORDER BY timestamp DESC LIMIT 1) as latest_yes_price,
             (SELECT price FROM trades WHERE market_id = m.id AND outcome = 'NO' ORDER BY timestamp DESC LIMIT 1) as latest_no_price
         FROM markets m
+        LEFT JOIN events e ON m.event_id = e.id
     """
 
     # Build WHERE clause
@@ -175,6 +179,8 @@ def get_markets(
                 # Latest trade prices
                 latest_yes_price=row["latest_yes_price"],
                 latest_no_price=row["latest_no_price"],
+                # Event slug for Polymarket URL
+                event_slug=row["event_slug"],
             )
         )
 
@@ -191,8 +197,17 @@ def get_market(
     """获取单个市场详情 (使用预存储的 trade_count)"""
     cursor = conn.cursor()
 
-    # Simple query using stored trade_count
-    cursor.execute("SELECT * FROM markets WHERE id = ?", (market_id,))
+    # Query with event_slug and latest trade prices
+    cursor.execute("""
+        SELECT
+            m.*,
+            e.slug as event_slug,
+            (SELECT price FROM trades WHERE market_id = m.id AND outcome = 'YES' ORDER BY timestamp DESC LIMIT 1) as latest_yes_price,
+            (SELECT price FROM trades WHERE market_id = m.id AND outcome = 'NO' ORDER BY timestamp DESC LIMIT 1) as latest_no_price
+        FROM markets m
+        LEFT JOIN events e ON m.event_id = e.id
+        WHERE m.id = ?
+    """, (market_id,))
     row = cursor.fetchone()
 
     if not row:
@@ -218,6 +233,11 @@ def get_market(
         liquidity=row["liquidity"] or 0.0,
         best_bid=row["best_bid"],
         best_ask=row["best_ask"],
+        # Latest trade prices
+        latest_yes_price=row["latest_yes_price"],
+        latest_no_price=row["latest_no_price"],
+        # Event slug for Polymarket URL
+        event_slug=row["event_slug"],
     )
 
 

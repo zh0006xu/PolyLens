@@ -106,7 +106,8 @@ def get_hot_markets(
             m.category,
             m.outcome_prices,
             COALESCE(m.volume_24h, 0) as volume_24h,
-            COALESCE(m.trade_count, 0) as trade_count_24h
+            COALESCE(m.trade_count, 0) as trade_count_24h,
+            COALESCE(m.unique_traders_24h, 0) as unique_traders_24h
         FROM markets m
         WHERE m.status = 'active'
           AND COALESCE(m.volume_24h, 0) > 0
@@ -170,9 +171,9 @@ def get_hot_markets(
         if current_price and old_price and old_price > 0:
             price_change = round((current_price - old_price) / old_price * 100, 1)
 
-        # 估算交易者数量
+        # 使用预计算的 unique_traders_24h
         trade_count = row["trade_count_24h"] or 0
-        estimated_traders = min(trade_count, int(trade_count * 0.3)) if trade_count > 0 else 0
+        unique_traders = row["unique_traders_24h"] or 0
 
         markets.append(HotMarket(
             id=market_id,
@@ -182,7 +183,7 @@ def get_hot_markets(
             category=row["category"],
             volume_24h=round(row["volume_24h"], 2),
             trade_count_24h=trade_count,
-            unique_traders_24h=estimated_traders,
+            unique_traders_24h=unique_traders,
             price_change_24h=price_change,
             current_price=round(current_price, 4) if current_price else None,
         ))

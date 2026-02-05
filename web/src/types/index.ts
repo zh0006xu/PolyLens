@@ -22,6 +22,8 @@ export interface Market {
   // Latest trade prices
   latest_yes_price: number | null;
   latest_no_price: number | null;
+  // Event slug for Polymarket URL
+  event_slug: string | null;
 }
 
 export interface MarketListResponse {

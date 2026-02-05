@@ -107,6 +107,43 @@ export function parseOutcomePrices(pricesStr: string | null): [number, number] {
 }
 
 /**
+ * Get best available prices for a market
+ * Priority: best_ask (order book) > latest trade prices > outcome_prices (Gamma API)
+ *
+ * Polymarket displays "buy" prices:
+ * - YES price = best_ask (price to buy YES)
+ * - NO price = 1 - best_bid (price to buy NO, since buying NO = selling YES)
+ */
+export function getMarketPrices(market: {
+  outcome_prices?: string | null;
+  latest_yes_price?: number | null;
+  latest_no_price?: number | null;
+  best_bid?: number | null;
+  best_ask?: number | null;
+}): [number, number] {
+  // Prefer order book prices (best_ask for YES, 1-best_bid for NO)
+  if (
+    market.best_ask != null &&
+    market.best_bid != null &&
+    market.best_ask > 0 &&
+    market.best_bid > 0
+  ) {
+    return [market.best_ask, 1 - market.best_bid];
+  }
+  // Fall back to latest trade prices
+  if (
+    market.latest_yes_price != null &&
+    market.latest_no_price != null &&
+    market.latest_yes_price > 0 &&
+    market.latest_no_price > 0
+  ) {
+    return [market.latest_yes_price, market.latest_no_price];
+  }
+  // Fall back to outcome_prices from Gamma API
+  return parseOutcomePrices(market.outcome_prices ?? null);
+}
+
+/**
  * Parse outcome names from JSON string
  * Returns array of outcome names, e.g., ["Clippers", "Nuggets"] or ["Yes", "No"]
  */
@@ -121,4 +158,28 @@ export function parseOutcomeNames(outcomesStr: string | null): string[] {
     // ignore parse errors
   }
   return ['YES', 'NO'];
+}
+
+/**
+ * Get the resolved outcome for a closed market
+ * Returns the winning outcome name or null if not resolved
+ */
+export function getResolvedOutcome(
+  status: string | null,
+  outcomePrices: string | null,
+  outcomeNames: string[] = ['YES', 'NO']
+): { winner: string; winnerIndex: number } | null {
+  if (!status || (status !== 'closed' && status !== 'resolved')) return null;
+
+  const [price0, price1] = parseOutcomePrices(outcomePrices);
+
+  // Price >= 0.95 indicates the winning outcome
+  if (price0 >= 0.95) {
+    return { winner: outcomeNames[0] || 'YES', winnerIndex: 0 };
+  }
+  if (price1 >= 0.95) {
+    return { winner: outcomeNames[1] || 'NO', winnerIndex: 1 };
+  }
+
+  return null;
 }

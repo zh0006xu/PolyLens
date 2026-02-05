@@ -13,7 +13,7 @@ import { KlineChart } from '../components/chart/KlineChart';
 import { Badge } from '../components/common';
 import { Spinner } from '../components/common';
 import { TraderLevelBadge, TRADER_LEVELS } from '../components/trader';
-import { parseOutcomePrices, formatVolume, formatDate, parseOutcomeNames, truncateAddress } from '../utils/format';
+import { getMarketPrices, formatVolume, formatDate, parseOutcomeNames, truncateAddress, getResolvedOutcome } from '../utils/format';
 
 export function MarketDetail() {
   const { marketId } = useParams<{ marketId: string }>();
@@ -74,11 +74,17 @@ export function MarketDetail() {
     );
   }
 
-  // Use outcome_prices from Polymarket API (always synced, YES + NO = 100%)
-  const [currentPrice0, currentPrice1] = parseOutcomePrices(market.outcome_prices);
+  // Use latest trade prices if available, fallback to Gamma API prices
+  const [currentPrice0, currentPrice1] = getMarketPrices(market);
 
-  // Polymarket URL (market slug maps to /market/, not /event/)
-  const polymarketUrl = `https://polymarket.com/market/${market.slug}`;
+  // Check if market is resolved
+  const isResolved = market.status === 'resolved' || market.status === 'closed';
+  const resolvedOutcome = getResolvedOutcome(market.status, market.outcome_prices, outcomeNames);
+
+  // Polymarket URL - use event_slug if available, fallback to market slug
+  const polymarketUrl = market.event_slug
+    ? `https://polymarket.com/event/${market.event_slug}`
+    : `https://polymarket.com/market/${market.slug}`;
 
   // Count of displayed whale trades
   const displayedWhaleCount = whalesData?.trades?.length || 0;
@@ -123,9 +129,21 @@ export function MarketDetail() {
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2 flex-wrap">
             {market.category && <Badge variant="info">{market.category}</Badge>}
-            <Badge variant={market.status === 'active' ? 'success' : 'default'}>
-              {market.status === 'active' ? 'Active' : market.status}
-            </Badge>
+            {market.status === 'active' ? (
+              <Badge variant="success">Active</Badge>
+            ) : (
+              (() => {
+                const resolved = getResolvedOutcome(market.status, market.outcome_prices, outcomeNames);
+                if (resolved) {
+                  return (
+                    <Badge variant={resolved.winnerIndex === 0 ? 'success' : 'danger'}>
+                      Resolved: {resolved.winner}
+                    </Badge>
+                  );
+                }
+                return <Badge variant="default">Resolved</Badge>;
+              })()
+            )}
             <a
               href={polymarketUrl}
               target="_blank"
@@ -140,54 +158,84 @@ export function MarketDetail() {
           </div>
           <h1 className="text-2xl font-bold text-white">{market.question || market.slug}</h1>
           <div className="flex items-center gap-4 mt-2 text-sm text-slate-400">
-            <span>Vol: ${formatVolume(market.volume || market.volume_24h)}</span>
+            <span>Total Vol: ${formatVolume(market.volume || 0)}</span>
+            {market.volume_24h && <span>24h: ${formatVolume(market.volume_24h)}</span>}
             {market.end_date && <span>Ends: {formatDate(market.end_date)}</span>}
             <span>{market.trade_count} trades</span>
           </div>
         </div>
       </div>
 
-      {/* Price Section */}
+      {/* Price/Outcome Section */}
       <div className={`rounded-xl border p-6 ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setSelectedOutcomeIdx(0)}
-              className={`px-6 py-3 rounded-lg font-bold text-lg transition-colors ${selectedOutcomeIdx === 0
-                  ? 'bg-emerald-500'
-                  : isLight
-                    ? 'bg-slate-100 hover:bg-slate-200'
-                    : 'bg-slate-800 hover:bg-slate-700'
-                }`}
-            >
-              <span className={selectedOutcomeIdx === 0 ? 'text-white' : isLight ? 'text-slate-400' : 'text-slate-300'}>
-                {outcomeNames[0]}
-              </span>
-              {' '}
-              <span className={selectedOutcomeIdx === 0 ? 'text-white/60' : isLight ? 'text-slate-500' : 'text-slate-500'}>
-                {(currentPrice0 * 100).toFixed(1)}¢
-              </span>
-            </button>
-            <button
-              onClick={() => setSelectedOutcomeIdx(1)}
-              className={`px-6 py-3 rounded-lg font-bold text-lg transition-colors ${selectedOutcomeIdx === 1
-                  ? 'bg-red-400'
-                  : isLight
-                    ? 'bg-slate-100 hover:bg-slate-200'
-                    : 'bg-slate-800 hover:bg-slate-700'
-                }`}
-            >
-              <span className={selectedOutcomeIdx === 1 ? 'text-white' : isLight ? 'text-slate-400' : 'text-slate-300'}>
-                {outcomeNames[1]}
-              </span>
-              {' '}
-              <span className={selectedOutcomeIdx === 1 ? 'text-white/60' : isLight ? 'text-slate-500' : 'text-slate-500'}>
-                {(currentPrice1 * 100).toFixed(1)}¢
-              </span>
-            </button>
+        {isResolved ? (
+          /* Resolved Market - Show final outcome */
+          <div className="text-center py-4">
+            <div className="text-sm text-slate-400 mb-2">Final Outcome</div>
+            <div className={`inline-flex items-center gap-3 px-8 py-4 rounded-xl text-2xl font-bold ${
+              resolvedOutcome?.winnerIndex === 0
+                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                : resolvedOutcome?.winnerIndex === 1
+                  ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                  : 'bg-slate-700/50 text-slate-300 border border-slate-600'
+            }`}>
+              {resolvedOutcome?.winnerIndex === 0 && (
+                <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              )}
+              {resolvedOutcome?.winnerIndex === 1 && (
+                <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              )}
+              {resolvedOutcome ? resolvedOutcome.winner : 'Resolved'}
+            </div>
           </div>
-        </div>
-        <PriceBar yesPrice={currentPrice0} noPrice={currentPrice1} height="lg" />
+        ) : (
+          /* Active Market - Show price selector */
+          <>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => setSelectedOutcomeIdx(0)}
+                  className={`px-6 py-3 rounded-lg font-bold text-lg transition-colors ${selectedOutcomeIdx === 0
+                      ? 'bg-emerald-500'
+                      : isLight
+                        ? 'bg-slate-100 hover:bg-slate-200'
+                        : 'bg-slate-800 hover:bg-slate-700'
+                    }`}
+                >
+                  <span className={selectedOutcomeIdx === 0 ? 'text-white' : isLight ? 'text-slate-400' : 'text-slate-300'}>
+                    {outcomeNames[0]}
+                  </span>
+                  {' '}
+                  <span className={selectedOutcomeIdx === 0 ? 'text-white/60' : isLight ? 'text-slate-500' : 'text-slate-500'}>
+                    {(currentPrice0 * 100).toFixed(1)}¢
+                  </span>
+                </button>
+                <button
+                  onClick={() => setSelectedOutcomeIdx(1)}
+                  className={`px-6 py-3 rounded-lg font-bold text-lg transition-colors ${selectedOutcomeIdx === 1
+                      ? 'bg-red-400'
+                      : isLight
+                        ? 'bg-slate-100 hover:bg-slate-200'
+                        : 'bg-slate-800 hover:bg-slate-700'
+                    }`}
+                >
+                  <span className={selectedOutcomeIdx === 1 ? 'text-white' : isLight ? 'text-slate-400' : 'text-slate-300'}>
+                    {outcomeNames[1]}
+                  </span>
+                  {' '}
+                  <span className={selectedOutcomeIdx === 1 ? 'text-white/60' : isLight ? 'text-slate-500' : 'text-slate-500'}>
+                    {(currentPrice1 * 100).toFixed(1)}¢
+                  </span>
+                </button>
+              </div>
+            </div>
+            <PriceBar yesPrice={currentPrice0} noPrice={currentPrice1} height="lg" />
+          </>
+        )}
       </div>
 
       {/* Metrics Panel */}

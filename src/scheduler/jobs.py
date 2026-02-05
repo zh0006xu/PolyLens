@@ -18,9 +18,20 @@ from ..core.whale_detector import WhaleDetector
 logger = logging.getLogger(__name__)
 
 
+def _get_market_status(data: dict) -> str:
+    """从 Gamma API 数据推断市场状态"""
+    if data.get("archived"):
+        return "archived"
+    if data.get("closed"):
+        return "closed"
+    if data.get("active") is False:
+        return "closed"
+    return "active"
+
+
 def _refresh_prices_from_polymarket(conn: sqlite3.Connection, limit: int = 50, max_workers: int = 10) -> int:
     """
-    从 Polymarket Gamma API 刷新活跃市场的 outcome_prices
+    从 Polymarket Gamma API 刷新活跃市场的 outcome_prices、status 和 event_slug
     使用并行请求加速（约 2 秒刷新 50 个市场）
 
     Args:
@@ -33,7 +44,7 @@ def _refresh_prices_from_polymarket(conn: sqlite3.Connection, limit: int = 50, m
 
     # 获取最活跃的市场（按交易量排序）
     cursor.execute("""
-        SELECT id, slug FROM markets
+        SELECT id, slug, event_id FROM markets
         WHERE status = 'active' AND slug IS NOT NULL
         ORDER BY volume DESC
         LIMIT ?
@@ -43,7 +54,7 @@ def _refresh_prices_from_polymarket(conn: sqlite3.Connection, limit: int = 50, m
     if not markets:
         return 0
 
-    def fetch_price(market_id, slug):
+    def fetch_market_data(market_id, slug, event_id):
         try:
             resp = httpx.get(
                 f"https://gamma-api.polymarket.com/markets",
@@ -53,7 +64,18 @@ def _refresh_prices_from_polymarket(conn: sqlite3.Connection, limit: int = 50, m
             if resp.status_code == 200:
                 data = resp.json()
                 if data and len(data) > 0:
-                    return market_id, data[0].get("outcomePrices")
+                    market_data = data[0]
+                    # Extract event slug from embedded events
+                    event_slug = None
+                    events = market_data.get("events", [])
+                    if events and len(events) > 0:
+                        event_slug = events[0].get("slug")
+                    return market_id, {
+                        "outcome_prices": market_data.get("outcomePrices"),
+                        "status": _get_market_status(market_data),
+                        "event_id": event_id,
+                        "event_slug": event_slug,
+                    }
         except Exception:
             pass
         return market_id, None
@@ -61,73 +83,72 @@ def _refresh_prices_from_polymarket(conn: sqlite3.Connection, limit: int = 50, m
     # 并行请求
     results = []
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = [executor.submit(fetch_price, m[0], m[1]) for m in markets]
+        futures = [executor.submit(fetch_market_data, m[0], m[1], m[2]) for m in markets]
         results = [f.result() for f in as_completed(futures)]
 
     # 批量更新数据库
     updated = 0
-    for market_id, outcome_prices in results:
-        if outcome_prices:
+    event_updates = {}
+    for market_id, market_data in results:
+        if market_data:
             cursor.execute(
-                "UPDATE markets SET outcome_prices = ? WHERE id = ?",
-                (outcome_prices, market_id)
+                "UPDATE markets SET outcome_prices = ?, status = ? WHERE id = ?",
+                (market_data["outcome_prices"], market_data["status"], market_id)
             )
             updated += 1
+            # Collect event slug updates
+            if market_data.get("event_id") and market_data.get("event_slug"):
+                event_updates[market_data["event_id"]] = market_data["event_slug"]
+
+    # Update event slugs
+    for event_id, event_slug in event_updates.items():
+        cursor.execute(
+            "UPDATE events SET slug = ? WHERE id = ?",
+            (event_slug, event_id)
+        )
 
     conn.commit()
     return updated
 
 
-def _update_market_prices(conn: sqlite3.Connection) -> int:
+def _update_unique_traders(conn: sqlite3.Connection, limit: int = 50) -> int:
     """
-    更新最近活跃市场的 outcome_prices（基于 trades 表的最新交易）
+    更新活跃市场的 unique_traders_24h（24小时内的独立交易者数量）
 
-    只更新最近 1 小时有交易的市场，避免全表扫描
+    只计算 top N 热门市场以保证性能（使用覆盖索引优化）
     """
     cursor = conn.cursor()
 
-    # 获取最近有交易的市场及其最新价格
+    # 获取需要更新的热门市场
     cursor.execute("""
-        WITH recent_markets AS (
-            SELECT DISTINCT market_id
-            FROM trades
-            WHERE timestamp >= datetime('now', '-1 hour')
-        ),
-        latest_prices AS (
-            SELECT
-                t.market_id,
-                t.outcome,
-                t.price,
-                ROW_NUMBER() OVER (PARTITION BY t.market_id, t.outcome ORDER BY t.timestamp DESC) as rn
-            FROM trades t
-            WHERE t.market_id IN (SELECT market_id FROM recent_markets)
-              AND t.outcome IN ('YES', 'NO')
-        )
-        SELECT
-            market_id,
-            MAX(CASE WHEN outcome = 'YES' THEN price END) as yes_price,
-            MAX(CASE WHEN outcome = 'NO' THEN price END) as no_price
-        FROM latest_prices
-        WHERE rn = 1
+        SELECT id FROM markets
+        WHERE status = 'active'
+        ORDER BY volume_24h DESC
+        LIMIT ?
+    """, (limit,))
+    market_ids = [row[0] for row in cursor.fetchall()]
+
+    if not market_ids:
+        return 0
+
+    # 批量计算 unique traders（使用覆盖索引 idx_trades_timestamp_market_taker）
+    placeholders = ",".join("?" * len(market_ids))
+    cursor.execute(f"""
+        SELECT market_id, COUNT(DISTINCT taker) as unique_traders
+        FROM trades
+        WHERE market_id IN ({placeholders})
+          AND timestamp >= datetime('now', '-24 hours')
         GROUP BY market_id
-    """)
+    """, market_ids)
 
-    rows = cursor.fetchall()
+    # 批量更新
     updated = 0
-
-    for row in rows:
-        market_id = row[0]
-        yes_price = row[1] or 0.5
-        no_price = row[2] or 0.5
-
-        # 格式化为 JSON 数组字符串
-        outcome_prices = f'[{yes_price:.4f}, {no_price:.4f}]'
-
+    for row in cursor.fetchall():
         cursor.execute(
-            "UPDATE markets SET outcome_prices = ? WHERE id = ?",
-            (outcome_prices, market_id)
+            "UPDATE markets SET unique_traders_24h = ? WHERE id = ?",
+            (row[1], row[0])
         )
-        updated += cursor.rowcount
+        updated += 1
 
     conn.commit()
     return updated
@@ -139,7 +160,7 @@ class SyncScheduler:
     def __init__(
         self,
         db_path: str = DATABASE_PATH,
-        interval_seconds: int = 30,
+        interval_seconds: int = 10,
         whale_threshold: float = 1000.0,
     ):
         """
@@ -202,7 +223,16 @@ class SyncScheduler:
 
             price_updated = await asyncio.to_thread(refresh_prices)
             if price_updated > 0:
-                logger.info(f"[Sync #{self.sync_count}] Refreshed prices for {price_updated} markets")
+                logger.info(f"[Sync #{self.sync_count}] Refreshed {price_updated} markets (prices & status)")
+
+            # 2.5 更新热门市场的 unique_traders_24h (约 3 秒)
+            def update_traders():
+                with sqlite3.connect(self.db_path) as conn:
+                    return _update_unique_traders(conn, limit=50)
+
+            traders_updated = await asyncio.to_thread(update_traders)
+            if traders_updated > 0:
+                logger.info(f"[Sync #{self.sync_count}] Updated unique_traders for {traders_updated} markets")
 
             # 3. 检测新鲸鱼并推送通知 (在线程池中执行)
             if inserted > 0:

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { Market } from '../../types';
-import { formatVolume, parseOutcomePrices } from '../../utils/format';
+import { formatVolume, getMarketPrices, parseOutcomeNames, getResolvedOutcome } from '../../utils/format';
 import { PriceBar } from './PriceBar';
 import { Badge } from '../common/Badge';
 
@@ -9,22 +9,14 @@ interface MarketCardProps {
 }
 
 export function MarketCard({ market }: MarketCardProps) {
-  // Use outcome_prices from Polymarket API (always synced, YES + NO = 100%)
-  const [yesPrice, noPrice] = parseOutcomePrices(market.outcome_prices);
+  // Use latest trade prices if available, fallback to Gamma API prices
+  const [yesPrice, noPrice] = getMarketPrices(market);
   const volume = market.volume || market.volume_24h || 0;
-
-  // Check if market is resolved (status can be 'resolved' or 'closed')
-  const isResolved = market.status === 'resolved' || market.status === 'closed';
+  const outcomeNames = parseOutcomeNames(market.outcomes);
 
   // Determine winning outcome for resolved markets
-  const getResolvedOutcome = () => {
-    if (!isResolved) return null;
-    // If YES price is >= 0.95, YES won; if NO price is >= 0.95, NO won
-    if (yesPrice >= 0.95) return 'YES';
-    if (noPrice >= 0.95) return 'NO';
-    return null;
-  };
-  const resolvedOutcome = getResolvedOutcome();
+  const resolved = getResolvedOutcome(market.status, market.outcome_prices, outcomeNames);
+  const isResolved = market.status === 'resolved' || market.status === 'closed';
 
   return (
     <Link
@@ -57,9 +49,7 @@ export function MarketCard({ market }: MarketCardProps) {
             <Badge variant="success">Active</Badge>
           )}
           {isResolved && (
-            <Badge variant={resolvedOutcome === 'YES' ? 'success' : resolvedOutcome === 'NO' ? 'danger' : 'default'}>
-              {resolvedOutcome ? `Resolved: ${resolvedOutcome}` : 'Resolved'}
-            </Badge>
+            <Badge variant="default">Resolved</Badge>
           )}
         </div>
 
@@ -68,8 +58,30 @@ export function MarketCard({ market }: MarketCardProps) {
           {market.question || market.slug}
         </h3>
 
-        {/* Price Bar */}
-        <PriceBar yesPrice={yesPrice} noPrice={noPrice} height="sm" />
+        {/* Price Bar or Resolved Outcome */}
+        {isResolved ? (
+          <div className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-semibold ${
+            resolved?.winnerIndex === 0
+              ? 'bg-emerald-500/20 text-emerald-400'
+              : resolved?.winnerIndex === 1
+                ? 'bg-red-500/20 text-red-400'
+                : 'bg-slate-700/50 text-slate-300'
+          }`}>
+            {resolved?.winnerIndex === 0 && (
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+            )}
+            {resolved?.winnerIndex === 1 && (
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            )}
+            {resolved ? resolved.winner : 'Resolved'}
+          </div>
+        ) : (
+          <PriceBar yesPrice={yesPrice} noPrice={noPrice} height="sm" />
+        )}
 
         {/* Stats */}
         <div className="flex items-center justify-between mt-3 text-xs text-slate-400">
