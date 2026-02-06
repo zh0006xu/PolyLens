@@ -144,6 +144,40 @@ export function getMarketPrices(market: {
 }
 
 /**
+ * Get sell prices for a market
+ * - Sell YES price = best_bid (price you receive when selling YES)
+ * - Sell NO price = 1 - best_ask (price you receive when selling NO)
+ */
+export function getMarketSellPrices(market: {
+  outcome_prices?: string | null;
+  latest_yes_price?: number | null;
+  latest_no_price?: number | null;
+  best_bid?: number | null;
+  best_ask?: number | null;
+}): [number, number] {
+  // Prefer order book prices (best_bid for YES, 1-best_ask for NO)
+  if (
+    market.best_ask != null &&
+    market.best_bid != null &&
+    market.best_ask > 0 &&
+    market.best_bid > 0
+  ) {
+    return [market.best_bid, 1 - market.best_ask];
+  }
+  // Fall back to latest trade prices (same as buy for fallback)
+  if (
+    market.latest_yes_price != null &&
+    market.latest_no_price != null &&
+    market.latest_yes_price > 0 &&
+    market.latest_no_price > 0
+  ) {
+    return [market.latest_yes_price, market.latest_no_price];
+  }
+  // Fall back to outcome_prices from Gamma API
+  return parseOutcomePrices(market.outcome_prices ?? null);
+}
+
+/**
  * Parse outcome names from JSON string
  * Returns array of outcome names, e.g., ["Clippers", "Nuggets"] or ["Yes", "No"]
  */

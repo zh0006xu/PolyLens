@@ -13,7 +13,7 @@ import { KlineChart } from '../components/chart/KlineChart';
 import { Badge } from '../components/common';
 import { Spinner } from '../components/common';
 import { TraderLevelBadge, TRADER_LEVELS } from '../components/trader';
-import { getMarketPrices, formatVolume, formatDate, parseOutcomeNames, truncateAddress, getResolvedOutcome } from '../utils/format';
+import { getMarketPrices, getMarketSellPrices, formatVolume, formatDate, parseOutcomeNames, truncateAddress, getResolvedOutcome } from '../utils/format';
 
 export function MarketDetail() {
   const { marketId } = useParams<{ marketId: string }>();
@@ -27,6 +27,7 @@ export function MarketDetail() {
   }, [marketId]);
 
   const [selectedOutcomeIdx, setSelectedOutcomeIdx] = useState(0);
+  const [tradeDirection, setTradeDirection] = useState<'buy' | 'sell'>('buy');
   const [period, setPeriod] = useState('24h');
   const [klineInterval, setKlineInterval] = useState('5m');
   const [whaleThreshold, setWhaleThreshold] = useState(1000);
@@ -75,7 +76,13 @@ export function MarketDetail() {
   }
 
   // Use latest trade prices if available, fallback to Gamma API prices
-  const [currentPrice0, currentPrice1] = getMarketPrices(market);
+  // Buy prices: what you pay to buy the token
+  // Sell prices: what you receive when selling the token
+  const [buyPrice0, buyPrice1] = getMarketPrices(market);
+  const [sellPrice0, sellPrice1] = getMarketSellPrices(market);
+  const [currentPrice0, currentPrice1] = tradeDirection === 'buy'
+    ? [buyPrice0, buyPrice1]
+    : [sellPrice0, sellPrice1];
 
   // Check if market is resolved
   const isResolved = market.status === 'resolved' || market.status === 'closed';
@@ -195,6 +202,41 @@ export function MarketDetail() {
         ) : (
           /* Active Market - Show price selector */
           <>
+            {/* Buy/Sell Tab */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setTradeDirection('buy')}
+                  className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                    tradeDirection === 'buy'
+                      ? isLight
+                        ? 'text-slate-900 border-b-2 border-slate-900'
+                        : 'text-white border-b-2 border-white'
+                      : isLight
+                        ? 'text-slate-400 hover:text-slate-600'
+                        : 'text-slate-500 hover:text-slate-300'
+                  }`}
+                >
+                  Buy
+                </button>
+                <button
+                  onClick={() => setTradeDirection('sell')}
+                  className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                    tradeDirection === 'sell'
+                      ? isLight
+                        ? 'text-slate-900 border-b-2 border-slate-900'
+                        : 'text-white border-b-2 border-white'
+                      : isLight
+                        ? 'text-slate-400 hover:text-slate-600'
+                        : 'text-slate-500 hover:text-slate-300'
+                  }`}
+                >
+                  Sell
+                </button>
+              </div>
+            </div>
+
+            {/* Outcome Buttons */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-4">
                 <button
@@ -233,7 +275,7 @@ export function MarketDetail() {
                 </button>
               </div>
             </div>
-            <PriceBar yesPrice={currentPrice0} noPrice={currentPrice1} height="lg" />
+            <PriceBar yesPrice={buyPrice0} noPrice={buyPrice1} height="lg" />
           </>
         )}
       </div>

@@ -89,9 +89,9 @@ export function MetricsPanel({ metrics, isLoading, period, onPeriodChange }: Met
       {/* Metrics Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <MetricCard
-          title="Buy Pressure"
+          title="Buy/Sell"
           value={`${buyPercentage.toFixed(0)}%`}
-          subtitle={`${buyRatio.buy_count} buys`}
+          subtitle={`${buyRatio.buy_count} buys / ${buyRatio.sell_count} sells`}
           trend={buyPercentage > 55 ? 'up' : buyPercentage < 45 ? 'down' : 'neutral'}
           tooltip={TOOLTIPS.buyPressure}
         />
@@ -104,7 +104,7 @@ export function MetricsPanel({ metrics, isLoading, period, onPeriodChange }: Met
         <MetricCard
           title="Whale Signal"
           value={whaleSignal.signal.toUpperCase()}
-          subtitle={`Strength: ${(whaleSignal.signal_strength * 100).toFixed(0)}%`}
+          subtitle={`Buy: $${formatVolume(whaleSignal.whale_buy_volume)} / Sell: $${formatVolume(whaleSignal.whale_sell_volume)}`}
           trend={signalTrend}
           tooltip={TOOLTIPS.whaleSignal}
         />
@@ -117,7 +117,7 @@ export function MetricsPanel({ metrics, isLoading, period, onPeriodChange }: Met
         <MetricCard
           title="Net Flow"
           value={`$${formatVolume(Math.abs(netFlow.net_flow))}`}
-          subtitle={netFlow.net_flow >= 0 ? 'Inflow' : 'Outflow'}
+          subtitle={`Buy: $${formatVolume(buyRatio.buy_volume)} / Sell: $${formatVolume(buyRatio.sell_volume)}`}
           trend={netFlow.net_flow > 0 ? 'up' : netFlow.net_flow < 0 ? 'down' : 'neutral'}
           tooltip={TOOLTIPS.netFlow}
         />
